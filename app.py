@@ -8,8 +8,11 @@ st.set_page_config(page_title="Agenda Nicola Cloud", layout="wide", initial_side
 # Incolla qui il tuo link (assicurati che finisca con /edit...)
 URL_FOGLIO = "IL_TUO_LINK_DEL_FOGLIO_GOOGLE"
 
-# Trasformiamo il link per scaricare direttamente il CSV
-CSV_URL = https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing
+# --- CONFIGURAZIONE ---
+URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing"
+
+# Questa riga qui sotto lasciala esattamente così (con le virgolette e i punti)
+CSV_URL = URL_FOGLIO.replace('/edit', '/export?format=csv')
 
 def carica_dati():
     try:
@@ -65,3 +68,4 @@ with tab_pross:
     for i in range(4):
         st.success(f"**{SETTIMANE_BASE[i]}**")
         display_clienti(df[df['Settimana'] == COLONNE_PROSSIME[i]])
+
