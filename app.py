@@ -2,26 +2,28 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
-# Configurazione Mobile-Friendly
+# Configurazione per telefono
 st.set_page_config(page_title="Agenda Nicola Cloud", layout="wide", initial_sidebar_state="collapsed")
 
 # --- COLLEGAMENTO GOOGLE SHEETS ---
-# INCOLLA QUI SOTTO IL LINK DEL TUO FOGLIO GOOGLE
-URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing"
+# Ricordati di sostituire l'URL tra le virgolette con quello del tuo foglio
+URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?gid=0#gid=0"
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def carica_dati():
-    return conn.read(spreadsheet=URL_FOGLIO, ttl="0s")
+    # Legge i dati dal foglio in tempo reale
+    return conn.read(spreadsheet=URL_FOGLIO, ttl=0)
 
-def salva_dati(df):
-    conn.update(spreadsheet=URL_FOGLIO, data=df)
+def salva_dati(df_da_salvare):
+    # Sovrascrive il foglio con le modifiche
+    conn.update(spreadsheet=URL_FOGLIO, data=df_da_salvare)
     st.cache_data.clear()
 
 # Caricamento iniziale
 df = carica_dati()
 
-# --- CONFIGURAZIONE SETTIMANE ---
+# Configurazione Settimane
 SETTIMANE_BASE = ["Sett 1", "Sett 2", "Sett 3", "Sett 4"]
 COLONNE_CORRENTI = [f"Mese Corrente - {s}" for s in SETTIMANE_BASE]
 COLONNE_PROSSIME = [f"Mese Prossimo - {s}" for s in SETTIMANE_BASE]
@@ -41,8 +43,8 @@ with st.sidebar:
                     "Cliente": n, "Settimana": sett_scelta, 
                     "Stato": "Da visitare", "Estivi": False, "Lancio": False, "Invernali": False
                 })
-            df_nuovo = pd.concat([df, pd.DataFrame(nuovi)], ignore_index=True)
-            salva_dati(df_nuovo)
+            df_aggiornato = pd.concat([df, pd.DataFrame(nuovi)], ignore_index=True)
+            salva_dati(df_aggiornato)
             st.rerun()
 
 # --- FUNZIONE VISUALIZZAZIONE ---
@@ -56,7 +58,7 @@ def display_clienti(df_subset, is_prossimo=False):
             st.write("**Adesione Campagne:**")
             c1, c2, c3 = st.columns(3)
             
-            # Gestione checkbox con salvataggio immediato
+            # Checkbox con salvataggio automatico al clic
             camp_est = c1.checkbox("ESTIVI", value=bool(row['Estivi']), key=f"est_{index}_{is_prossimo}")
             camp_lan = c2.checkbox("LANCIO", value=bool(row['Lancio']), key=f"lan_{index}_{is_prossimo}")
             camp_inv = c3.checkbox("INVERNALI", value=bool(row['Invernali']), key=f"inv_{index}_{is_prossimo}")
@@ -70,7 +72,7 @@ def display_clienti(df_subset, is_prossimo=False):
 
             st.divider()
             if not is_prossimo:
-                st.write("**Sposta in questo mese:**")
+                st.write("**Sposta settimana:**")
                 sposta_ora = st.selectbox("Cambia in:", ["Scegli..."] + COLONNE_CORRENTI, key=f"now_{index}")
                 if sposta_ora != "Scegli...":
                     df.at[index, 'Settimana'] = sposta_ora
@@ -78,7 +80,7 @@ def display_clienti(df_subset, is_prossimo=False):
                     st.rerun()
                 
                 st.divider()
-                st.write("**Prossimo Mese:**")
+                st.write("**Mese Prossimo:**")
                 default_next = row['Settimana'].replace("Mese Corrente", "Mese Prossimo")
                 scelta_next = st.selectbox("Invia a:", COLONNE_PROSSIME, 
                                           index=COLONNE_PROSSIME.index(default_next), key=f"next_{index}")
