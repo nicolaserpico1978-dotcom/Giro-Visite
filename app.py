@@ -7,8 +7,13 @@ st.set_page_config(page_title="Agenda Nicola", layout="wide")
 URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing"
 
 # Trasformazione per leggere i dati
+import time # Aggiungi questa riga in alto insieme agli altri import
+
+# Modifica la parte del link così:
 CSV_URL = URL_FOGLIO.replace('/edit?usp=sharing', '/export?format=csv')
 CSV_URL = CSV_URL.replace('/edit', '/export?format=csv')
+# Questa riga dice a Google: "Dammi i dati freschi di adesso!"
+CSV_URL = f"{CSV_URL}&cache_bust={int(time.time())}"
 
 st.title("🚀 Agenda Nicola")
 
@@ -39,3 +44,4 @@ try:
 except Exception as e:
     st.error("Caricamento in corso... Se non vedi i dati, assicurati di aver aggiunto almeno un cliente sul Foglio Google!")
     st.info("Assicurati che il foglio abbia queste colonne: Cliente, Settimana, Stato, Estivi, Lancio, Invernali")
+
