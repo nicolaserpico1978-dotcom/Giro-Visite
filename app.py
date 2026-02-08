@@ -1,45 +1,47 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import time
 
 st.set_page_config(page_title="Agenda Nicola Pro", layout="wide")
 
-# CONFIGURAZIONE
-URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing"
-CSV_URL = URL_FOGLIO.replace('/edit?usp=sharing', '/export?format=csv').replace('/edit', '/export?format=csv')
+# Connessione al foglio usando i Secrets che hai appena salvato
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Funzione per caricare i dati
-def load_data():
-    return pd.read_csv(f"{CSV_URL}&cache_bust={int(time.time())}")
+# Funzione per leggere i dati
+def carica_dati():
+    return conn.read(spreadsheet="INCOLLA_IL_TUO_URL_FOGLIO_QUI", ttl=0)
 
-df = load_data()
+df = carica_dati()
 
-st.title("🚀 Nicola: Gestione Giri")
-
-if st.button("🔄 AGGIORNA LISTA"):
-    st.rerun()
-
-st.divider()
+st.title("🚀 Agenda Nicola Automatica")
 
 # Selezione Settimana
-settimane = sorted(df['Settimana'].unique())
-sett_scelta = st.selectbox("📅 Settimana attuale:", settimane)
+lista_sett = sorted(df['Settimana'].unique())
+sett_scelta = st.selectbox("📅 Scegli Settimana", lista_sett)
 
 clienti_sett = df[df['Settimana'] == sett_scelta]
 
 for i, row in clienti_sett.iterrows():
     with st.container(border=True):
-        col_nome, col_azione = st.columns([0.6, 0.4])
+        col1, col2 = st.columns([0.7, 0.3])
         
-        with col_nome:
+        with col1:
             st.subheader(f"👤 {row['Cliente']}")
-            # Mostra stato attuale
-            if str(row['Stato']).upper() == "X":
-                st.success("Già visitato questo mese")
-        
-        with col_azione:
-            # TASTO MAGICO
-            if st.button("SPOSTA AL PROSSIMO MESE", key=f"btn_{i}"):
-                st.warning("Stiamo spostando il cliente... (Questa funzione richiede autorizzazione speciale)")
-                st.info("Nicola, per spostare senza aprire il foglio, l'app deve simulare un click. Al momento i browser bloccano la scrittura diretta senza 'Service Account'.")
-                st.write("👉 **Soluzione rapida:** Clicca il link sotto per spostare il cliente istantaneamente tramite un modulo veloce.")
+            st.caption(f"Stato attuale: {row['Stato']}")
+            
+        with col2:
+            # TASTO MAGICO: Quando lo premi, l'app scrive sul foglio!
+            if st.button("SPOSTA ✅", key=f"btn_{i}"):
+                # Modifichiamo il foglio: cambiamo la settimana e puliamo lo stato
+                df.at[i, 'Settimana'] = "Mese Prossimo - Sett 1"
+                df.at[i, 'Stato'] = "Da visitare" 
+                
+                # Salvataggio automatico sul Foglio Google
+                conn.update(spreadsheet="INCOLLA_IL_TUO_URL_FOGLIO_QUI", data=df)
+                
+                st.success("Spostato!")
+                st.rerun()
+
+if st.button("🔄 AGGIORNA TUTTO"):
+    st.cache_data.clear()
+    st.rerun()
