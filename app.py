@@ -1,47 +1,42 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
 
 st.set_page_config(page_title="Agenda Nicola Pro", layout="wide")
 
-# Connessione al foglio usando i Secrets che hai appena salvato
+# Connessione al foglio
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Funzione per leggere i dati
-def carica_dati():
-    return conn.read(spreadsheet="INCOLLA_IL_TUO_URL_FOGLIO_QUI", ttl=0)
+URL = "https://docs.google.com/spreadsheets/d/1AHzXsASD1MCW9gI31y88pYbGF5ZRKiPyuVXYVFK-Uho/edit?usp=sharing"
 
-df = carica_dati()
+# Lettura dati (ttl=0 forza l'aggiornamento ogni volta)
+df = conn.read(spreadsheet=URL, ttl=0)
 
-st.title("🚀 Agenda Nicola Automatica")
+st.title("🚀 Agenda Nicola")
 
-# Selezione Settimana
+# Filtro Settimana
 lista_sett = sorted(df['Settimana'].unique())
-sett_scelta = st.selectbox("📅 Scegli Settimana", lista_sett)
+scelta = st.selectbox("📅 Seleziona Settimana", lista_sett)
 
-clienti_sett = df[df['Settimana'] == sett_scelta]
+clienti = df[df['Settimana'] == scelta]
 
-for i, row in clienti_sett.iterrows():
+for i, row in clienti.iterrows():
     with st.container(border=True):
         col1, col2 = st.columns([0.7, 0.3])
-        
         with col1:
-            st.subheader(f"👤 {row['Cliente']}")
-            st.caption(f"Stato attuale: {row['Stato']}")
-            
+            st.subheader(row['Cliente'])
+            st.write(f"Stato: {row['Stato']}")
         with col2:
-            # TASTO MAGICO: Quando lo premi, l'app scrive sul foglio!
             if st.button("SPOSTA ✅", key=f"btn_{i}"):
-                # Modifichiamo il foglio: cambiamo la settimana e puliamo lo stato
-                df.at[i, 'Settimana'] = "Mese Prossimo - Sett 1"
-                df.at[i, 'Stato'] = "Da visitare" 
+                # Modifica la settimana: se è Sett 1 va a Sett 2, ecc.
+                # Per ora facciamo che li rimette tutti in Sett 1 "nuova"
+                df.at[i, 'Settimana'] = "Sett 1 (Mese Succ)"
+                df.at[i, 'Stato'] = "" # Pulisce la X
                 
-                # Salvataggio automatico sul Foglio Google
-                conn.update(spreadsheet="INCOLLA_IL_TUO_URL_FOGLIO_QUI", data=df)
-                
+                # Invia al foglio
+                conn.update(spreadsheet=URL, data=df)
                 st.success("Spostato!")
                 st.rerun()
 
-if st.button("🔄 AGGIORNA TUTTO"):
+if st.button("🔄 REFRESH"):
     st.cache_data.clear()
     st.rerun()
